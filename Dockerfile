@@ -17,7 +17,7 @@ RUN apt-get update && \
     # 清理 apt cache
     rm -rf /var/lib/apt/lists/*
 
-    # 建立 non-root user (UID/GID 固定為 1000 名稱是 devuser)
+# 建立 non-root user (UID/GID 固定為 1000 名稱是 devuser)
 ARG USERNAME=devuser
 ARG UID=1000
 ARG GID=1000
