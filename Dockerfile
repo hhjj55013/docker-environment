@@ -19,10 +19,15 @@ RUN apt-get update && \
 
 # 建立 non-root user (UID/GID 固定為 1000 名稱是 devuser)
 ARG USERNAME=devuser
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g ${GID} ${USERNAME} && \
-    # UID/GID 固定為 1000 並指定 shell 為 bash
+ARG UID=200
+ARG GID=200
+RUN set -eux; \
+    if getent group ${GID}; then \
+        EXIST_GROUP=$(getent group ${GID} | cut -d: -f1); \
+    else \
+        groupadd -g ${GID} ${USERNAME}; \
+        EXIST_GROUP=${USERNAME}; \
+    fi; \
     useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USERNAME}
 
 WORKDIR /home/${USERNAME}
@@ -60,10 +65,10 @@ ENV PATH=/opt/conda/bin:$PATH
 RUN apt-get update && apt-get install -y wget bzip2 ca-certificates && \
     if [ "$TARGETARCH" = "arm64" ]; then \
         wget -qO miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh; \
-    else if [ "$ARCH" = "x86_64" ]; then \
+    elif [ "$TARGETARCH" = "x86_64" ]; then \
         wget -qO miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh; \
     else \
-        echo "Unsupported architecture: $ARCH"; exit 1; \
+        echo "Unsupported architecture: $TARGETARCH"; exit 1; \
     fi && \
     bash miniconda.sh -b -p /opt/conda && \
     rm miniconda.sh
