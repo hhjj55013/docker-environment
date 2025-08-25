@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e  # 發生錯誤時中斷 script
 
 IMAGE_NAME="aoc2026-env"
@@ -139,12 +140,12 @@ case "$COMMAND" in
     *)
         echo "Usage: $0 {build|run|clean|rebuild} [options]"
         echo "Options:"
-        echo "  --image-name, -i <name>   Docker image name (default: $IMAGE_NAME)"
-        echo "  --cont-name, -c <name>    Docker container name (default: $CONTAINER_NAME)"
-        echo "  --username, -u <name>     Username inside container (default: $USERNAME)"
-        echo "  --hostname, -H <name>     Hostname inside container (default: $HOSTNAME)"
-        echo "  --mount, -m <path>        Mount local path into container (can repeat)"
-        echo "  --arch, -a <arch>         Override architecture (default: $ARCH)"
+        echo "  --image-name, -i <name>   Docker image name                (default: $IMAGE_NAME)"
+        echo "  --cont-name, -c <name>    Docker container name            (default: $CONTAINER_NAME)"
+        echo "  --username, -u <name>     Username inside container        (default: $USERNAME)"
+        echo "  --hostname, -H <name>     Hostname inside container        (default: $HOSTNAME)"
+        echo "  --mount, -m <path>        Mount local path into container"
+        echo "  --arch, -a <arch>         Override architecture            (default: $ARCH)"
         exit 1
         ;;
 esac
