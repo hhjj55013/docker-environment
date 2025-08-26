@@ -144,12 +144,11 @@ ENV SYSTEMC_CXXFLAGS=-I$SYSTEMC_HOME:/include
 RUN bash -c "source /etc/profile.d/systemc.sh && echo \$LD_LIBRARY_PATH && echo \$SYSTEMC_LDFLAGS"
 
 # Copy the eman script to the container
-# COPY ./script/eman.sh /usr/local/bin/eman
-
+COPY ./script/eman.sh /usr/local/bin/eman
 # RUN apt-get update && apt-get install -y dos2unix && dos2unix /usr/local/bin/eman && apt-get clean
-# RUN chmod +x /usr/local/bin/eman
+RUN chmod +x /usr/local/bin/eman
 # Make sure the eman script can be executed by the user
-# ENV PATH="/usr/local/bin:${PATH}"
+ENV PATH="/usr/local/bin:${PATH}"
 
 # 切回 devuser
 USER ${USERNAME}
