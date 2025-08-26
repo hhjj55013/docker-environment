@@ -77,7 +77,7 @@ RUN apt-get update && apt-get install -y wget bzip2 ca-certificates && \
 FROM ubuntu:24.04 AS verilator_provider
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git help2man perl python3 python3-dev python3-pip make build-essential \
+    git help2man perl python3 python3-dev python3-pip make build-essential perl-modules-5.38 \
     ca-certificates autoconf flex bison libfl2 libfl-dev libreadline-dev zlib1g zlib1g-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -110,6 +110,13 @@ RUN cd systemc-${SYSTEMC_VERSION}/build && \
 FROM base AS final
 USER root
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    vim git gedit curl wget ca-certificates build-essential \
+    python3 python3-pip sudo perl && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # 複製 common tools
 COPY --from=common_pkg_provider /usr/bin/vim /usr/bin/vim
 COPY --from=common_pkg_provider /usr/bin/git /usr/bin/git
@@ -129,7 +136,7 @@ COPY --from=conda_provider /opt/conda /opt/conda
 ENV PATH=/opt/conda/bin:$PATH
 
 # 複製 Verilator
-COPY --from=verilator_provider /usr/local/verilator/bin/verilator /usr/local/bin/verilator
+COPY --from=verilator_provider /usr/local/verilator/bin/ /usr/local/bin/
 
 # 複製 SystemC
 COPY --from=systemc_provider /opt/systemc /opt/systemc
