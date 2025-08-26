@@ -83,39 +83,47 @@ clean_all() {
     docker rmi -f "$IMAGE_NAME" 2>/dev/null || true
 }
 
+get_container_status() {
+    local name="$1"
+    if docker ps -q -f name="^/${name}$" | grep -q .; then
+        echo "running"
+    elif docker ps -a -q -f name="^/${name}$" | grep -q .; then
+        echo "exited"
+    else
+        echo "not_exist"
+    fi
+}
+
 # 啟動 container
 run_container() {
     check_required_params
 
-    STATUS=$(docker inspect -f '{{.State.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "not_exist")
+    status=$(get_container_status "$CONTAINER_NAME")
+    echo "Detected container status: $status"
 
-    case "$STATUS" in
+    MOUNT_ARGS=()
+    for mnt in "${MOUNT_PATHS[@]}"; do
+        MOUNT_ARGS+=("-v" "$mnt")
+    done
+
+    case "$status" in
         running)
-            echo "Container is already running. Attaching..."
+            echo "Container is running. Attaching..."
             docker exec -it "$CONTAINER_NAME" bash
             ;;
         exited)
             echo "Container exists but stopped. Starting..."
-            docker start "$CONTAINER_NAME"
-            docker exec -it "$CONTAINER_NAME" bash
+            docker start -ai "$CONTAINER_NAME"
             ;;
         not_exist)
-            echo "Creating and running new container..."
-            MOUNT_ARGS=()
-            for path in "${MOUNT_PATHS[@]}"; do
-                MOUNT_ARGS+=("-v" "$path:$path")
-            done
-
-            docker run -it \
-                --name "$CONTAINER_NAME" \
-                --hostname "$HOSTNAME" \
-                -e USERNAME="$USERNAME" \
+            echo "Container not found. Creating..."
+            docker run -it --name "$CONTAINER_NAME" \
                 "${MOUNT_ARGS[@]}" \
-                "$IMAGE_NAME" \
-                bash
+                -e USER="$USERNAME" \
+                "$IMAGE_NAME" bash
             ;;
         *)
-            echo "Unknown container status: $STATUS"
+            echo "Unknown container status: $status"
             exit 1
             ;;
     esac

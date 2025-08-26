@@ -6,20 +6,18 @@ help() {
 Usage: eman <command> [options]
 
 Available commands:
-    help                         Show this help message
-    c-compiler-version           Print GCC and Make version
-    c-compiler-example           Compile & run C/C++ example
-    check-verilator              Print Verilator version
-    verilator-example            Compile & run Verilator example
+    help                      Show this help message
+    c-compiler-version, -cv   Print GCC and Make version
+    c-compiler-example, -ce   Compile & run C/C++ example
+    check-verilator, -vv      Print Verilator version
+    verilator-example, -ve    Compile & run Verilator example
 EOF
 }
 
 c_compiler_version() {
     if command -v gcc >/dev/null 2>&1; then
-        echo "GCC version:"
-        gcc --version | head -n1
-        echo "Make version:"
-        make --version | head -n1
+        echo "GCC version: $(gcc --version | head -n1)"
+        echo "Make version: $(make --version | head -n1)"
     else
         echo "GCC not found."
         exit 1
@@ -37,13 +35,13 @@ check_verilator() {
 
 case "$1" in
     help|"") help ;;
-    c-compiler-version) c_compiler_version ;;
-    c-compiler-example) 
+    c-compiler-version|-cv) c_compiler_version ;;
+    c-compiler-example|-ce) 
         shift
         cd "$1" && \
         make clean all;;
-    check-verilator) check_verilator ;;
-    verilator-example)
+    check-verilator|-vv) check_verilator ;;
+    verilator-example|-ve)
         shift
         cd "$1" && \
         make clean all;;
