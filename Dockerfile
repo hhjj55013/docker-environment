@@ -77,30 +77,37 @@ RUN apt-get update && apt-get install -y wget bzip2 ca-certificates && \
 FROM ubuntu:24.04 AS verilator_provider
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git autoconf flex bison g++ make perl && \
-    git clone https://github.com/verilator/verilator.git /tmp/verilator && \
-    cd /tmp/verilator && git checkout stable && \
-    autoconf && ./configure && make -j$(nproc) && make install && \
-    rm -rf /var/lib/apt/lists/*
+    git help2man perl python3 python3-dev python3-pip make build-essential \
+    ca-certificates autoconf flex bison libfl2 libfl-dev libreadline-dev zlib1g zlib1g-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/verilator/verilator.git /tmp/verilator && \
+    cd /tmp/verilator && \
+    autoconf && ./configure --prefix=/usr/local/verilator && \
+    make -j$(nproc) && make install && \
+    rm -rf /tmp/verilator
 
 # Stage 6: systemc_provider - Build SystemC
 FROM ubuntu:24.04 AS systemc_provider
 
 ARG SYSTEMC_VERSION=2.3.4
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget tar g++ make && \
-    wget -qO systemc.tar.gz https://github.com/accellera-official/systemc/archive/refs/tags/${SYSTEMC_VERSION}.tar.gz && \
-    tar -xzf systemc.tar.gz && \
+    libtool autoconf automake wget ca-certificates build-essential cmake && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    wget https://github.com/accellera-official/systemc/archive/refs/tags/${SYSTEMC_VERSION}.tar.gz -O systemc-${SYSTEMC_VERSION}.tar.gz && \
+    tar -xzf systemc-${SYSTEMC_VERSION}.tar.gz && \
     cd systemc-${SYSTEMC_VERSION} && \
+    autoreconf -i && \
     mkdir build && cd build && \
-    ../configure --prefix=/opt/systemc && \
-    make -j$(nproc) && make install && \
-    rm -rf /var/lib/apt/lists/* systemc.tar.gz systemc-${SYSTEMC_VERSION}
+    ../configure --prefix=/opt/systemc
+
+RUN cd systemc-${SYSTEMC_VERSION}/build && \
+    make -j$(nproc) && \
+    make install && \
+    rm -rf systemc-${SYSTEMC_VERSION}*
 
 # Stage 7: final - Assemble Base + Providers
 FROM base AS final
-
-# 切回 root，才能 copy 安裝好的工具
 USER root
 
 # 複製 common tools
@@ -122,20 +129,32 @@ COPY --from=conda_provider /opt/conda /opt/conda
 ENV PATH=/opt/conda/bin:$PATH
 
 # 複製 Verilator
-COPY --from=verilator_provider /usr/local/bin/verilator /usr/local/bin/verilator
+COPY --from=verilator_provider /usr/local/verilator/bin/verilator /usr/local/bin/verilator
 
 # 複製 SystemC
 COPY --from=systemc_provider /opt/systemc /opt/systemc
 RUN mkdir -p /etc/profile.d && \
     echo "export SYSTEMC_HOME=/opt/systemc" >> /etc/profile.d/systemc.sh && \
     echo "export LD_LIBRARY_PATH=/opt/systemc/lib-linux64:/opt/systemc/lib-linux:/opt/systemc/lib:\$LD_LIBRARY_PATH" >> /etc/profile.d/systemc.sh && \
-    echo "export SYSTEMC_CXXFLAGS=-I\$SYSTEMC_HOME/include" >> /etc/profile.d/systemc.sh && \
-    echo "export SYSTEMC_LDFLAGS=-L\$SYSTEMC_HOME/lib -lsystemc" >> /etc/profile.d/systemc.sh
+    echo "export SYSTEMC_CXXFLAGS=\"-I\$SYSTEMC_HOME/include\"" >> /etc/profile.d/systemc.sh && \
+    echo "export SYSTEMC_LDFLAGS=\"-L\$SYSTEMC_HOME/lib -lsystemc\"" >> /etc/profile.d/systemc.sh
+ENV SYSTEMC_HOME=/opt/systemc
+ENV PATH=$SYSTEMC_HOME:/bin:$PATH
+ENV SYSTEMC_CXXFLAGS=-I$SYSTEMC_HOME:/include
+RUN bash -c "source /etc/profile.d/systemc.sh && echo \$LD_LIBRARY_PATH && echo \$SYSTEMC_LDFLAGS"
 
-# 切回非 root
-USER devuser
-WORKDIR /home/devuser
+# Copy the eman script to the container
+# COPY ./script/eman.sh /usr/local/bin/eman
 
-RUN echo "source /etc/profile.d/systemc.sh" >> /home/devuser/.bashrc
+# RUN apt-get update && apt-get install -y dos2unix && dos2unix /usr/local/bin/eman && apt-get clean
+# RUN chmod +x /usr/local/bin/eman
+# Make sure the eman script can be executed by the user
+# ENV PATH="/usr/local/bin:${PATH}"
+
+# 切回 devuser
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+
+RUN echo "source /etc/profile.d/systemc.sh" >> /home/${USERNAME}/.bashrc
 
 CMD ["/bin/bash", "-l"]
