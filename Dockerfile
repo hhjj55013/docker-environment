@@ -112,7 +112,8 @@ USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     vim git gedit curl wget ca-certificates build-essential \
-    python3 python3-pip sudo perl && \
+    python3 python3-pip sudo perl \
+    gdb openssh-client && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
